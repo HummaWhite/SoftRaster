@@ -1,7 +1,11 @@
+#ifndef VECTOR_H
+#define VECTOR_H
+
 #include <iostream>
 #include <cstdlib>
 #include <cmath>
 #include <initializer_list>
+#include "Math.h"
 
 template<int N>
 class Vec
@@ -154,30 +158,33 @@ private:
 	float data[N];
 };
 
-namespace VecKit
+typedef Vec<4> Vec4;
+typedef Vec<3> Vec3;
+typedef Vec<2> Vec2;
+
+template<int N>
+float dot(Vec<N>& a, Vec<N>& b)
 {
-	template<int N>
-	float dot(Vec<N>& a, Vec<N>& b)
-	{
-		float res = 0.0f;
-		for (int i = 0; i < N; i++) res += a[i] * b[i];
-		return res;
-	}
-
-	Vec<3> cross(Vec<3>&a, Vec<3>&b)
-	{
-		Vec<3> res;
-		res[0] = a[1] * b[2] - a[2] * b[1];
-		res[1] = a[2] * b[0] - a[0] * b[2];
-		res[2] = a[0] * b[1] - a[1] * b[0];
-		return res;
-	}
-
-	template<int N>
-	float length(Vec<N> v)
-	{
-		float res = 0.0f;
-		for (int i = 0; i < N; i++) res += v[i] * v[i];
-		return sqrt(res);
-	}
+	float res = 0.0f;
+	for (int i = 0; i < N; i++) res += a[i] * b[i];
+	return res;
 }
+
+Vec3 cross(Vec3& a, Vec3& b)
+{
+	Vec3 res;
+	res[0] = a[1] * b[2] - a[2] * b[1];
+	res[1] = a[2] * b[0] - a[0] * b[2];
+	res[2] = a[0] * b[1] - a[1] * b[0];
+	return res;
+}
+
+template<int N>
+float length(Vec<N> v)
+{
+	float res = 0.0f;
+	for (int i = 0; i < N; i++) res += v[i] * v[i];
+	return sqrt(res);
+}
+
+#endif

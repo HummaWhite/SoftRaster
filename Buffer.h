@@ -1,3 +1,6 @@
+#ifndef BUFFER_H
+#define BUFFER_H
+
 #include <Windows.h>
 #include <cstdlib>
 #include <algorithm>
@@ -5,11 +8,11 @@
 template<typename T>
 struct Buffer
 {
-	Buffer() {}
+	Buffer(): data(nullptr) {}
 
-	Buffer(int size)
+	Buffer(int count)
 	{
-		init(size);
+		init(count);
 	}
 
 	~Buffer()
@@ -17,11 +20,11 @@ struct Buffer
 		release();
 	}
 
-	virtual void init(int size)
+	virtual void init(int count)
 	{
 		if (data != nullptr) return;
-		data = new T[size];
-		this->size = size;
+		data = new T[count];
+		this->count = count;
 	}
 
 	virtual void release()
@@ -29,18 +32,28 @@ struct Buffer
 		if (data == nullptr) return;
 		delete[] data;
 		data = nullptr;
-		size = 0;
+		count = 0;
 	}
 
-	virtual void resize(int size)
+	virtual void resize(int count)
 	{
 		release();
-		init(size);
+		init(count);
 	}
 
 	void fill(T val)
 	{
-		std::fill(data, data + size, val);
+		std::fill(data, data + count, val);
+	}
+
+	void load(const void *src, size_t byteSize, int offset = 0)
+	{
+		if (data == nullptr)
+		{
+			std::cout << "Buffer::Error: buffer not initialized" << std::endl;
+			exit(-1);
+		}
+		memcpy(data + offset, src, byteSize);
 	}
 
 	T& operator () (int index)
@@ -59,5 +72,7 @@ struct Buffer
 	}
 
 	T *data = nullptr;
-	int size = 0;
+	int count = 0;
 };
+
+#endif
