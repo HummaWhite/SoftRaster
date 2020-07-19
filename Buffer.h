@@ -56,7 +56,13 @@ struct Buffer
 		memcpy(data + offset, src, byteSize);
 	}
 
-	T& operator () (int index)
+	void copy(Buffer& buffer)
+	{
+		init(buffer.count);
+		memcpy(data, buffer.ptr(), count * sizeof(T));
+	}
+
+	T& operator [] (int index)
 	{
 		return data[index];
 	}

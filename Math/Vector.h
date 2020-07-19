@@ -136,6 +136,18 @@ public:
 		return res;
 	}
 
+	float length()
+	{
+		float res = 0.0f;
+		for (int i = 0; i < N; i++) res += data[i] * data[i];
+		return sqrt(res);
+	}
+
+	Vec<N> normalized()
+	{
+		return (*this) / length();
+	}
+
 	void* ptr()
 	{
 		return (void*)data;
@@ -182,9 +194,13 @@ Vec3 cross(Vec3& a, Vec3& b)
 template<int N>
 float length(Vec<N> v)
 {
-	float res = 0.0f;
-	for (int i = 0; i < N; i++) res += v[i] * v[i];
-	return sqrt(res);
+	return v.length();
+}
+
+template<int N>
+Vec<N> normalize(Vec<N> v)
+{
+	return v.normalized();
 }
 
 #endif
