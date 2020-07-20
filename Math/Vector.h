@@ -64,22 +64,22 @@ public:
 		return res;
 	}
 
-	void operator += (Vec<N>& v)
+	void operator += (Vec<N> v)
 	{
 		for (int i = 0; i < N; i++) data[i] += v[i];
 	}
 
-	void operator -= (Vec<N>& v)
+	void operator -= (Vec<N> v)
 	{
 		for (int i = 0; i < N; i++) data[i] -= v[i];
 	}
 
-	void operator *= (Vec<N>& v)
+	void operator *= (Vec<N> v)
 	{
 		for (int i = 0; i < N; i++) data[i] *= v[i];
 	}
 
-	void operator /= (Vec<N>& v)
+	void operator /= (Vec<N> v)
 	{
 		for (int i = 0; i < N; i++) data[i] /= v[i];
 	}
@@ -94,28 +94,28 @@ public:
 		for (int i = 0; i < N; i++) data[i] /= v;
 	}
 
-	Vec<N> operator + (Vec<N>& v)
+	Vec<N> operator + (Vec<N> v)
 	{
 		Vec<N> res = *this;
 		res += v;
 		return res;
 	}
 
-	Vec<N> operator - (Vec<N>& v)
+	Vec<N> operator - (Vec<N> v)
 	{
 		Vec<N> res = *this;
 		res -= v;
 		return res;
 	}
 
-	Vec<N> operator * (Vec<N>& v)
+	Vec<N> operator * (Vec<N> v)
 	{
 		Vec<N> res = *this;
 		res *= v;
 		return res;
 	}
 
-	Vec<N> operator / (Vec<N>& v)
+	Vec<N> operator / (Vec<N> v)
 	{
 		Vec<N> res = *this;
 		res /= v;

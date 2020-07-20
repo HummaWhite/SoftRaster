@@ -14,4 +14,10 @@ float toDeg(float rad)
 	return rad * 180.0f / Pi;
 }
 
+template<typename T>
+T lerp(T from, T to, float weight)
+{
+	return from + (to - from) * weight;
+}
+
 #endif
