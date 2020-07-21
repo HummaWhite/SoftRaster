@@ -7,6 +7,7 @@
 #include "math/Matrix.h"
 #include "Vertex.h"
 #include "VertexProcessor.h"
+#include "Rasterizer.h"
 
 const int W_WIDTH = 1280;
 const int W_HEIGHT = 720;
@@ -74,15 +75,15 @@ int Setup()
 
 	float data[] =
 	{
-		1.0f, 0.0f, 0.0f,
-		-1.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, 4.0f,
-		1.0f, 0.0f, 0.0f,
-		-1.0f, 0.0f, 0.0f,
-		-1.0f, -2.0f, 0.0f,
-		-10.0f, 5.0f, 2.0f,
-		3.0f, -4.0f, 1.2f,
-		0.0f, -4.89f, 4.2f
+		1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 4.0f, 0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+		-1.0f, -2.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+		-10.0f, 5.0f, 2.0f, 1.0f, 0.0f, 0.0f,
+		3.0f, -4.0f, 1.2f, 0.0f, 1.0f, 0.0f,
+		0.0f, -4.89f, 4.2f, 0.0f, 0.0f, 1.0f
 	};
 
 	Buffer<SimpleShader::VertexIn> vb(9);
@@ -98,12 +99,18 @@ int Setup()
 	shader.proj = perspective(75.0f, (float)W_WIDTH / (float)W_HEIGHT, 0.1f, 100.0f);
 
 	Buffer<SimpleShader::VertexOut> out;
-	VertexProcessor::processVertex(out, vb, shader, Primitive::TRIANGLE);
+	VertexProcessor::processVertex(out, vb, shader, { W_WIDTH, W_HEIGHT }, Primitive::TRIANGLE);
+
+	Buffer<SimpleShader::VertexOut> fragments;
+	Rasterizer::rasterize(fragments, out);
+
+	std::cout << fragments.count << std::endl;
 
 	std::cout << std::endl;
 	for (int i = 0; i < out.count; i++)
 	{
 		out[i].sr_Position.print();
+		out[i].color.print();
 	}
 
 	FrameBuffer<RGB24> colorBuffer(W_WIDTH, W_HEIGHT);
@@ -112,18 +119,28 @@ int Setup()
 	FrameBuffer<float> depthBuffer(W_WIDTH, W_HEIGHT);
 	depthBuffer.fill(0.0f);
 
+	for (int i = 0; i < fragments.count; i++)
+	{
+		int x = fragments[i].sr_Position[0];
+		int y = fragments[i].sr_Position[1];
+		Vec3 color(fragments[i].color);
+		//color.print();
+
+		colorBuffer(x, W_HEIGHT - y) = RGB24(color);
+	}
+
 	for (int i = 0; i < out.count / 3; i++)
 	{
 		for (int j = 0; j < 3; j++)
 		{
-			int x0 = (out[i * 3 + 0].sr_Position[0] + 1.0f) * W_WIDTH / 2.0f;
-			int y0 = (out[i * 3 + 0].sr_Position[1] + 1.0f) * W_HEIGHT / 2.0f;
+			int x0 = out[i * 3 + 0].sr_Position[0];
+			int y0 = out[i * 3 + 0].sr_Position[1];
 
-			int x1 = (out[i * 3 + 1].sr_Position[0] + 1.0f) * W_WIDTH / 2.0f;
-			int y1 = (out[i * 3 + 1].sr_Position[1] + 1.0f) * W_HEIGHT / 2.0f;
+			int x1 = out[i * 3 + 1].sr_Position[0];
+			int y1 = out[i * 3 + 1].sr_Position[1];
 
-			int x2 = (out[i * 3 + 2].sr_Position[0] + 1.0f) * W_WIDTH / 2.0f;
-			int y2 = (out[i * 3 + 2].sr_Position[1] + 1.0f) * W_HEIGHT / 2.0f;
+			int x2 = out[i * 3 + 2].sr_Position[0];
+			int y2 = out[i * 3 + 2].sr_Position[1];
 
 			draw(x0, y0, x1, y1, colorBuffer);
 			draw(x1, y1, x2, y2, colorBuffer);

@@ -191,6 +191,11 @@ Vec3 cross(Vec3& a, Vec3& b)
 	return res;
 }
 
+float cross(Vec2 a, Vec2 b)
+{
+	return (a[0] * b[1] - a[1] * b[0]) * 0.5f;
+}
+
 template<int N>
 float length(Vec<N> v)
 {

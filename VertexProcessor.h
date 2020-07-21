@@ -17,6 +17,7 @@ public:
 			Buffer<typename Shader::VertexOut>& vertexOut,
 			Buffer<typename Shader::VertexIn>& vertexIn,
 			Shader& shader,
+			Vec2 viewportSize,
 			int primitiveType,
 			Buffer<UINT> *indices = nullptr)
 	{
@@ -27,7 +28,7 @@ public:
 		{
 			UINT index = (indices == nullptr) ? i : (*indices)[i];
 			
-			typename Shader::VertexOut tmp = shader.process(vertexIn[index]);
+			typename Shader::VertexOut tmp = shader.processVertex(vertexIn[index]);
 			clipSpaceVertexData[i] = tmp;
 		}
 
@@ -45,7 +46,15 @@ public:
 
 		for (int i = 0; i < vertexOut.count; i++)
 		{
-			vertexOut[i].sr_Position /= vertexOut[i].sr_Position[3];
+			// CVV --> NDC --> Screen Space
+			Vec4& pos = vertexOut[i].sr_Position;
+			pos = pos / pos[3];
+			
+			pos[0] = ((pos[0] + 1.0f) / 2.0f) * viewportSize[0];
+			pos[1] = ((pos[1] + 1.0f) / 2.0f) * viewportSize[1];
+
+			// z --> 1 / z，便于后期的透视校正插值
+			pos[2] = 2.0f / (pos[2] + 1.0f);
 		}
 	}
 
@@ -98,17 +107,17 @@ private:
 				VertexOut va = input[j];
 				VertexOut vb = input[(j + 1) % input.size()];
 
-				if (inside(vb.sr_Position, planes[i]))
+				if (inside(vb.sr_Position, planeNorms[i]))
 				{
-					if (!inside(va.sr_Position, planes[i]))
+					if (!inside(va.sr_Position, planeNorms[i]))
 					{
-						output.push_back(intersect(va, vb, planes[i]));
+						output.push_back(intersect(va, vb, planeNorms[i]));
 					}
 					output.push_back(vb);
 				}
-				else if (inside(va.sr_Position, planes[i]))
+				else if (inside(va.sr_Position, planeNorms[i]))
 				{
-					output.push_back(intersect(va, vb, planes[i]));
+					output.push_back(intersect(va, vb, planeNorms[i]));
 				}
 			}
 		}
@@ -136,7 +145,9 @@ private:
 		float db = dot(vb.sr_Position, plane);
 
 		float weight = da / (da - db);
-		return VertexOut(va, vb, weight);
+		VertexOut out(va, vb, weight);
+		out.sr_Position = lerp(va.sr_Position, vb.sr_Position, weight);
+		return out;
 	}
 
 	static int areaCode(Vec4 pos)
@@ -156,7 +167,7 @@ private:
 	}
 
 private:
-	const static std::vector<Vec4> planes;
+	const static std::vector<Vec4> planeNorms;
 
 	enum
 	{
@@ -170,7 +181,7 @@ private:
 	} ClipAreaCode;
 };
 
-const std::vector<Vec4> VertexProcessor::planes =
+const std::vector<Vec4> VertexProcessor::planeNorms =
 {
 	{ 0.0f, 0.0f, 1.0f,  1.0f },
 	{ 0.0f, 0.0f,-1.0f,  1.0f },
