@@ -1,3 +1,4 @@
+#pragma GCC optimize(3, "Ofast", "inline")
 #include <iostream>
 
 #include "acllib.h"
@@ -8,11 +9,15 @@
 #include "Vertex.h"
 #include "VertexProcessor.h"
 #include "Rasterizer.h"
+#include "Camera.h"
+#include "PipelineData.h"
+#include "FrameBufferAdapter.h"
+#include "FragmentProcessor.h"
 
 const int W_WIDTH = 1280;
 const int W_HEIGHT = 720;
 
-void draw(int x1, int y1, int x2, int y2, FrameBuffer<RGB24>& buffer)
+void draw(int x1, int y1, int x2, int y2, FrameBufferDouble<RGB24>& buffer)
 {
 	for (int i = x1 - 4; i <= x1 + 4; i++)
 	{
@@ -73,80 +78,83 @@ int Setup()
 {
 	initWindow("Test", DEFAULT, DEFAULT, W_WIDTH, W_HEIGHT);
 
-	float data[] =
+	std::vector<SimpleShader::VSIn> vb =
 	{
-		1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-		-1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-		0.0f, 0.0f, 4.0f, 0.0f, 0.0f, 1.0f,
-		1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-		-1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-		-1.0f, -2.0f, 0.0f, 0.0f, 0.0f, 1.0f,
-		-10.0f, 5.0f, 2.0f, 1.0f, 0.0f, 0.0f,
-		3.0f, -4.0f, 1.2f, 0.0f, 1.0f, 0.0f,
-		0.0f, -4.89f, 4.2f, 0.0f, 0.0f, 1.0f
+		{ { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+		{ { -1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+		{ { -1.0f, -2.0f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
+		/*{ { -10.0f, 5.0f, 2.0f }, { 1.0f, 0.0f, 0.0f } },
+		{ { 3.0f, -4.0f, 1.2f }, { 0.0f, 1.0f, 0.0f } },
+		{ { 0.0f, -4.89f, 4.2f }, { 0.0f, 0.0f, 1.0f } },*/
+		{ { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f } },
+		{ { -1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } },
+		{ { 0.0f, 0.0f, 4.0f }, { 0.0f, 0.0f, 1.0f } }
 	};
-
-	Buffer<SimpleShader::VertexIn> vb(9);
-	vb.load(data, sizeof(data));
 
 	SimpleShader shader;
 
+	Camera camera({ 0.0f, -5.0f, 2.0f });
+	camera.setFOV(75.0f);
+
 	Mat4 model(1.0f);
-	//model = translate(model, { 1.0f, -2.0f, 3.0f });
 
-	shader.model = model;
-	shader.view = lookAt({ 0.0f, -5.0f, 1.0f }, { 0.0, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f });
-	shader.proj = perspective(75.0f, (float)W_WIDTH / (float)W_HEIGHT, 0.1f, 100.0f);
-
-	Buffer<SimpleShader::VertexOut> out;
-	VertexProcessor::processVertex(out, vb, shader, { W_WIDTH, W_HEIGHT }, Primitive::TRIANGLE);
-
-	Buffer<SimpleShader::VertexOut> fragments;
-	Rasterizer::rasterize(fragments, out);
-
-	std::cout << fragments.count << std::endl;
-
-	std::cout << std::endl;
-	for (int i = 0; i < out.count; i++)
-	{
-		out[i].sr_Position.print();
-		out[i].color.print();
-	}
-
-	FrameBuffer<RGB24> colorBuffer(W_WIDTH, W_HEIGHT);
+	FrameBufferDouble<RGB24> colorBuffer(W_WIDTH, W_HEIGHT);
 	colorBuffer.fill({ 0, 0, 0 });
 
-	FrameBuffer<float> depthBuffer(W_WIDTH, W_HEIGHT);
-	depthBuffer.fill(0.0f);
+	FrameBufferDouble<float> depthBuffer(W_WIDTH, W_HEIGHT);
+	depthBuffer.fill(1.0f);
 
-	for (int i = 0; i < fragments.count; i++)
+	FrameBufferAdapter adapter;
+	adapter.colorAttachments.push_back(&colorBuffer);
+	adapter.depthAttachment = &depthBuffer;
+
+	while (1)
 	{
-		int x = fragments[i].sr_Position[0];
-		int y = fragments[i].sr_Position[1];
-		Vec3 color(fragments[i].color);
-		//color.print();
+		colorBuffer.fill({ 0, 0, 0 });
+		depthBuffer.fill(1.0f);
 
-		colorBuffer(x, W_HEIGHT - y) = RGB24(color);
+		model = rotate(model, { 1.0f, 0.0f, 1.0f }, 1.0f);
+
+		shader.model = model;
+		shader.view = camera.viewMatrix({ 0.0f, 0.0f, 0.0f });
+		shader.proj = camera.projMatrix(W_WIDTH, W_HEIGHT);
+
+		std::vector<Pipeline::FSIn<SimpleShader::VSToFS>> vertexOut = VertexProcessor::processVertex(vb, shader, { W_WIDTH, W_HEIGHT }, Primitive::TRIANGLE);
+
+		/*std::cout << vertexOut.size() << std::endl;
+		  for (int i = 0; i < vertexOut.size(); i++)
+		  {
+		  std::cout << vertexOut[i].x << " " << vertexOut[i].y << " " << vertexOut[i].z << std::endl;
+		  }
+
+		  std::cout << "\n";*/
+
+		std::vector<Pipeline::FSIn<SimpleShader::VSToFS>> fragments = Rasterizer::rasterize(vertexOut);
+		//std::cout << fragments.size() << std::endl;
+
+		FragmentProcessor::processFragment(adapter, shader, fragments);
+
+		/*for (int i = 0; i < vertexOut.size() / 3; i++)
+		  {
+		  for (int j = 0; j < 3; j++)
+		  {
+		  int x0 = vertexOut[i * 3 + 0].x;
+		  int y0 = vertexOut[i * 3 + 0].y;
+
+		  int x1 = vertexOut[i * 3 + 1].x;
+		  int y1 = vertexOut[i * 3 + 1].y;
+
+		  int x2 = vertexOut[i * 3 + 2].x;
+		  int y2 = vertexOut[i * 3 + 2].y;
+
+		  draw(x0, y0, x1, y1, colorBuffer);
+		  draw(x1, y1, x2, y2, colorBuffer);
+		  draw(x0, y0, x2, y2, colorBuffer);
+		  }
+		 }*/
+
+		flushScreen((BYTE*)colorBuffer.getCurrentBuffer().bufPtr(), W_WIDTH, W_HEIGHT);
+		colorBuffer.swap();
+		depthBuffer.swap();
 	}
-
-	for (int i = 0; i < out.count / 3; i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			int x0 = out[i * 3 + 0].sr_Position[0];
-			int y0 = out[i * 3 + 0].sr_Position[1];
-
-			int x1 = out[i * 3 + 1].sr_Position[0];
-			int y1 = out[i * 3 + 1].sr_Position[1];
-
-			int x2 = out[i * 3 + 2].sr_Position[0];
-			int y2 = out[i * 3 + 2].sr_Position[1];
-
-			draw(x0, y0, x1, y1, colorBuffer);
-			draw(x1, y1, x2, y2, colorBuffer);
-			draw(x0, y0, x2, y2, colorBuffer);
-		}
-	}
-
-	flushScreen((BYTE*)colorBuffer.bufPtr(), W_WIDTH, W_HEIGHT);
 }

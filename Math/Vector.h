@@ -175,14 +175,14 @@ typedef Vec<3> Vec3;
 typedef Vec<2> Vec2;
 
 template<int N>
-float dot(Vec<N>& a, Vec<N>& b)
+float dot(Vec<N> a, Vec<N> b)
 {
 	float res = 0.0f;
 	for (int i = 0; i < N; i++) res += a[i] * b[i];
 	return res;
 }
 
-Vec3 cross(Vec3& a, Vec3& b)
+static Vec3 cross(Vec3& a, Vec3& b)
 {
 	Vec3 res;
 	res[0] = a[1] * b[2] - a[2] * b[1];
@@ -191,7 +191,7 @@ Vec3 cross(Vec3& a, Vec3& b)
 	return res;
 }
 
-float cross(Vec2 a, Vec2 b)
+static float cross(Vec2 a, Vec2 b)
 {
 	return (a[0] * b[1] - a[1] * b[0]) * 0.5f;
 }
@@ -206,6 +206,18 @@ template<int N>
 Vec<N> normalize(Vec<N> v)
 {
 	return v.normalized();
+}
+
+template<typename T>
+T lerp(T from, T to, float weight)
+{
+	return from + (to - from) * weight;
+}
+
+template<typename T>
+T triLerp(T a, T b, T c, Vec3 weight)
+{
+	return a * weight[0] + b * weight[1] + c * weight[2];
 }
 
 #endif

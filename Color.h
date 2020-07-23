@@ -1,3 +1,6 @@
+#ifndef COLOR_H
+#define COLOR_H
+
 #include <Windows.h>
 #include <iostream>
 #include <cmath>
@@ -22,3 +25,5 @@ struct RGBA32
 {
 	BYTE r, g, b, a;
 };
+
+#endif

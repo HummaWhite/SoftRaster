@@ -195,19 +195,19 @@ Mat<N> transpose(Mat<N>& m)
 	return m.transpose();
 }
 
-Mat4 translationMatrix(Vec3 delta)
+static Mat4 translationMatrix(Vec3 delta)
 {
 	Mat4 res(1.0f);
 	for (int i = 0; i < 3; i++) res(i, 3) = delta[i];
 	return res;
 }
 
-Mat4 scaleMatrix(Vec3 scale)
+static Mat4 scaleMatrix(Vec3 scale)
 {
 	return { scale[0], scale[1], scale[2], 1.0f };
 }
 
-Mat4 rotationMatrix(Vec3 axis, float deg)
+static Mat4 rotationMatrix(Vec3 axis, float deg)
 {
 	float t = toRad(deg);
 	float sint = sin(t);
@@ -223,25 +223,25 @@ Mat4 rotationMatrix(Vec3 axis, float deg)
 
 }
 
-Mat4 translate(Mat4& m, Vec3 delta)
+static Mat4 translate(Mat4& m, Vec3 delta)
 {
 	Mat4 tr = translationMatrix(delta);
 	return m * tr;
 }
 
-Mat4 scale(Mat4& m, Vec3 scale)
+static Mat4 scale(Mat4& m, Vec3 scale)
 {
 	Mat4 sc = scaleMatrix(scale);
 	return m * sc;
 }
 
-Mat4 rotate(Mat4& m, Vec3 axis, float deg)
+static Mat4 rotate(Mat4& m, Vec3 axis, float deg)
 {
 	Mat4 rt = rotationMatrix(axis.normalized(), deg);
 	return m * rt;
 }
 
-float det(Mat3& m)
+static float det(Mat3& m)
 {
 	float res
 		= m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1))
@@ -250,7 +250,7 @@ float det(Mat3& m)
 	return res;
 }
 
-Mat3 inverse(Mat3& m)
+static Mat3 inverse(Mat3& m)
 {
 	float d = det(m);
 	Mat3 res =
@@ -262,7 +262,7 @@ Mat3 inverse(Mat3& m)
 	return res / d;
 }
 
-Mat4 inverse(Mat4& m)
+static Mat4 inverse(Mat4& m)
 {
 	float d
 		= m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1))
@@ -301,7 +301,7 @@ Mat4 inverse(Mat4& m)
 	return res;
 }
 
-Mat4 ortho(float left, float right, float bottom, float top, float zNear, float zFar)
+static Mat4 ortho(float left, float right, float bottom, float top, float zNear, float zFar)
 {
 	Mat4 res;
 
@@ -316,7 +316,7 @@ Mat4 ortho(float left, float right, float bottom, float top, float zNear, float 
 	return res;
 }
 
-Mat4 perspective(float FOVy, float aspect, float zNear, float zFar)
+static Mat4 perspective(float FOVy, float aspect, float zNear, float zFar)
 {
 	Mat4 res;
 
@@ -330,7 +330,7 @@ Mat4 perspective(float FOVy, float aspect, float zNear, float zFar)
 	return res;
 }
 
-Mat4 lookAt(Vec3 eye, Vec3 lookingAt, Vec3 up)
+static Mat4 lookAt(Vec3 eye, Vec3 lookingAt, Vec3 up)
 {
 	Vec3 D = (lookingAt - eye).normalized();
 	Vec3 R = cross(D, up).normalized();

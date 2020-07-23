@@ -8,17 +8,18 @@
 #include "Buffer.h"
 #include "Shader.h"
 #include "Primitive.h"
+#include "PipelineData.h"
 
 class Rasterizer
 {
 public:
 	template<typename VertexData>
-	static void rasterize(
-			Buffer<VertexData>& outData,
-			Buffer<VertexData>& vertexData)
+	static std::vector<VertexData> rasterize(
+			std::vector<VertexData>& vertexData)
 	{
-		int triangleCount = vertexData.count / 3;
-		std::vector<VertexData> rasterized;
+		std::vector<VertexData> outData;
+
+		int triangleCount = vertexData.size() / 3;
 
 		for (int i = 0; i < triangleCount; i++)
 		{
@@ -28,11 +29,10 @@ public:
 
 			std::vector<VertexData> triangle = processTriangle(va, vb, vc);
 
-			rasterized.insert(rasterized.end(), triangle.begin(), triangle.end());
+			outData.insert(outData.end(), triangle.begin(), triangle.end());
 		}
 
-		outData.init(rasterized.size());
-		outData.load((void*)&rasterized[0], rasterized.size() * sizeof(VertexData));
+		return outData;
 	}
 
 private:
@@ -49,57 +49,54 @@ private:
 		{
 			for (int j = 0; j < 2; j++)
 			{
-				if (sorted[j].sr_Position[1] > sorted[j + 1].sr_Position[1])
+				if (sorted[j].y > sorted[j + 1].y)
 				{
 					std::swap(sorted[j], sorted[j + 1]);
 				}
 			}
 		}
 
-		sorted[0].sr_Position.print();
-		sorted[0].color.print();
-		sorted[1].sr_Position.print();
-		sorted[1].color.print();
-		sorted[2].sr_Position.print();
-		sorted[2].color.print();
-
-		float x0 = sorted[0].sr_Position[0], y0 = sorted[0].sr_Position[1];
-		float x1 = sorted[1].sr_Position[0], y1 = sorted[1].sr_Position[1];
-		float x2 = sorted[2].sr_Position[0], y2 = sorted[2].sr_Position[1];
+		float x0 = sorted[0].x, y0 = sorted[0].y;
+		float x1 = sorted[1].x, y1 = sorted[1].y;
+		float x2 = sorted[2].x, y2 = sorted[2].y;
 
 		//扫描线光栅化，生成片段
 		for (int i = y0; i <= y2; i++)
 		{
-			int endX = lerp(x0, x2, (i - y0) / (y2 - y0));
+			int endX = (y2 == y0) ? x2 : lerp<float>(x0, x2, float(i - y0) / float(y2 - y0));
 			int startX = x1;
 
 			if (i == y0) startX = (y1 == y0) ? x1 : x0;
-			else if (i < y1) startX = lerp(x0, x1, (i - y0) / (y1 - y0));
-			else if (i < y2) startX = lerp(x1, x2, (i - y1) / (y2 - y1));
+			else if (i < y1) startX = lerp<float>(x0, x1, float(i - y0) / float(y1 - y0));
+			else if (i < y2) startX = lerp<float>(x1, x2, float(i - y1) / float(y2 - y1));
 			else if (i == y2) startX = (y1 == y2) ? x1 : x2;
 
+			//std::cout << i << "  " << startX << "  " << endX << std::endl;
 			int dx = (endX > startX) ? 1 : -1;
+			//startX -= dx, endX += dx;
 
 			for (int j = startX; j != endX; j += dx)
 			{
 				Vec2 p = { (float)j, (float)i };
-				Vec2 va(sorted[0].sr_Position);
-				Vec2 vb(sorted[1].sr_Position);
-				Vec2 vc(sorted[2].sr_Position);
+				Vec2 va = { (float)sorted[0].x, (float)sorted[0].y };
+				Vec2 vb = { (float)sorted[1].x, (float)sorted[1].y };
+				Vec2 vc = { (float)sorted[2].x, (float)sorted[2].y };
 
 				float area = abs(cross(vc - va, vb - va));
 				float la = abs(cross(vb - p, vc - p)) / area;
 				float lb = abs(cross(vc - p, va - p)) / area;
 				float lc = abs(cross(va - p, vb - p)) / area;
 
-				VertexData fragment(sorted[0], sorted[1], sorted[2], la, lb, lc);
-				fragment.sr_Position[0] = j;
-				fragment.sr_Position[1] = i;
+				Vec3 weight = { la, lb, lc };
+
+				VertexData fragment(sorted[0], sorted[1], sorted[2], weight);
+				fragment.x = j;
+				fragment.y = i;
+				fragment.z = 1.0f / fragment.z;
 
 				output.push_back(fragment);
 			}
 		}
-
 		return output;
 	}
 };

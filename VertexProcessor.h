@@ -1,3 +1,5 @@
+
+
 #ifndef VERTEXPROCESSOR_H
 #define VERTEXPROCESSOR_H
 
@@ -8,28 +10,29 @@
 #include "Buffer.h"
 #include "Shader.h"
 #include "Primitive.h"
+#include "PipelineData.h"
 
 class VertexProcessor
 {
 public:
 	template<typename Shader>
-	static void processVertex(
-			Buffer<typename Shader::VertexOut>& vertexOut,
-			Buffer<typename Shader::VertexIn>& vertexIn,
+	static std::vector<Pipeline::FSIn<typename Shader::VSToFS>> processVertex(
+			std::vector<typename Shader::VSIn>& vertexIn,
 			Shader& shader,
 			Vec2 viewportSize,
 			int primitiveType,
-			Buffer<UINT> *indices = nullptr)
+			std::vector<UINT> *indices = nullptr)
 	{
-		int vertexCount = (indices == nullptr) ? vertexIn.count : indices->count;
-		Buffer<typename Shader::VertexOut> clipSpaceVertexData(vertexCount);
+		std::vector<Pipeline::FSIn<typename Shader::VSToFS>> outData;
+		std::vector<Pipeline::VSOut<typename Shader::VSToFS>> clipped;
+		std::vector<Pipeline::VSOut<typename Shader::VSToFS>> clipSpaceData;
+
+		int vertexCount = (indices == nullptr) ? vertexIn.size() : indices->size();
 
 		for (int i = 0; i < vertexCount; i++)
 		{
 			UINT index = (indices == nullptr) ? i : (*indices)[i];
-			
-			typename Shader::VertexOut tmp = shader.processVertex(vertexIn[index]);
-			clipSpaceVertexData[i] = tmp;
+			clipSpaceData.push_back(shader.processVertex(vertexIn[index]));
 		}
 
 		switch (primitiveType)
@@ -37,58 +40,62 @@ public:
 			case Primitive::LINE:
 				break;
 			case Primitive::TRIANGLE:
-				doClipping(vertexOut, clipSpaceVertexData);
+				clipped = doClipping(clipSpaceData);
 				break;
 			case Primitive::POINT:
 			default:
 				break;
 		};
 
-		for (int i = 0; i < vertexOut.count; i++)
+		for (int i = 0; i < clipped.size(); i++)
 		{
 			// CVV --> NDC --> Screen Space
-			Vec4& pos = vertexOut[i].sr_Position;
-			pos = pos / pos[3];
+			Vec4 pos = clipped[i].sr_Position / clipped[i].sr_Position[3];
 			
-			pos[0] = ((pos[0] + 1.0f) / 2.0f) * viewportSize[0];
-			pos[1] = ((pos[1] + 1.0f) / 2.0f) * viewportSize[1];
+			int x = ((pos[0] + 1.0f) / 2.0f) * viewportSize[0];
+			int y = ((pos[1] + 1.0f) / 2.0f) * viewportSize[1];
 
 			// z --> 1 / z，便于后期的透视校正插值
-			pos[2] = 2.0f / (pos[2] + 1.0f);
+			float z = 2.0f / (pos[2] + 1.0f);
+
+			Pipeline::FSIn<typename Shader::VSToFS> tmp;
+			tmp.data = clipped[i].data;
+			tmp.x = x, tmp.y = y, tmp.z = z;
+			outData.push_back(tmp);
 		}
+
+		return outData;
 	}
 
 private:
-	template<typename VertexOut>
-	static void doClipping(
-			Buffer<VertexOut>& outData,
-			Buffer<VertexOut>& clipSpaceVertexData)
+	template<typename VSToFS>
+	static std::vector<Pipeline::VSOut<VSToFS>> doClipping(
+			std::vector<Pipeline::VSOut<VSToFS>>& clipSpaceData)
 	{
-		int triangleCount = clipSpaceVertexData.count / 3;
-		std::vector<VertexOut> clipResult;
+		int triangleCount = clipSpaceData.size() / 3;
+		std::vector<Pipeline::VSOut<VSToFS>> clipResult;
 
 		for (int i = 0; i < triangleCount; i++)
 		{
-			VertexOut va = clipSpaceVertexData[i * 3 + 0];
-			VertexOut vb = clipSpaceVertexData[i * 3 + 1];
-			VertexOut vc = clipSpaceVertexData[i * 3 + 2];
+			Pipeline::VSOut<VSToFS> va = clipSpaceData[i * 3 + 0];
+			Pipeline::VSOut<VSToFS> vb = clipSpaceData[i * 3 + 1];
+			Pipeline::VSOut<VSToFS> vc = clipSpaceData[i * 3 + 2];
 
-			std::vector<VertexOut> clipped = clipTriangle(va, vb, vc);
+			std::vector<Pipeline::VSOut<VSToFS>> clipped = clipTriangle(va, vb, vc);
 
 			clipResult.insert(clipResult.end(), clipped.begin(), clipped.end());
 		}
 
-		outData.init(clipResult.size());
-		outData.load((void*)&clipResult[0], clipResult.size() * sizeof(VertexOut));
+		return clipResult;
 	}
 
-	template<typename VertexOut>
-	static std::vector<VertexOut> clipTriangle(
-			VertexOut& v0,
-			VertexOut& v1,
-			VertexOut& v2)
+	template<typename VSToFS>
+	static std::vector<Pipeline::VSOut<VSToFS>> clipTriangle(
+			Pipeline::VSOut<VSToFS>& v0,
+			Pipeline::VSOut<VSToFS>& v1,
+			Pipeline::VSOut<VSToFS>& v2)
 	{
-		std::vector<VertexOut> output = { v0, v1, v2 };
+		std::vector<Pipeline::VSOut<VSToFS>> output = { v0, v1, v2 };
 
 		if (areaCode(v0.sr_Position) == INSIDE 
 				&& areaCode(v1.sr_Position) == INSIDE
@@ -99,13 +106,13 @@ private:
 
 		for (int i = 0; i < 6; i++)
 		{
-			std::vector<VertexOut> input(output);
+			std::vector<Pipeline::VSOut<VSToFS>> input(output);
 			output.clear();
 
 			for (int j = 0; j < input.size(); j++)
 			{
-				VertexOut va = input[j];
-				VertexOut vb = input[(j + 1) % input.size()];
+				Pipeline::VSOut<VSToFS> va = input[j];
+				Pipeline::VSOut<VSToFS> vb = input[(j + 1) % input.size()];
 
 				if (inside(vb.sr_Position, planeNorms[i]))
 				{
@@ -122,7 +129,7 @@ private:
 			}
 		}
 
-		std::vector<VertexOut> res;
+		std::vector<Pipeline::VSOut<VSToFS>> res;
 		for (int i = 1; i < output.size() - 1; i++)
 		{
 			res.push_back(output[0]);
@@ -138,15 +145,17 @@ private:
 		return dot(plane, pos) >= 0.0f;
 	}
 
-	template<typename VertexOut>
-	static VertexOut intersect(VertexOut& va, VertexOut& vb, Vec4 plane)
+	template<typename VSToFS>
+	static Pipeline::VSOut<VSToFS> intersect(
+			Pipeline::VSOut<VSToFS>& va,
+			Pipeline::VSOut<VSToFS>& vb,
+			Vec4 plane)
 	{
 		float da = dot(va.sr_Position, plane);
 		float db = dot(vb.sr_Position, plane);
 
 		float weight = da / (da - db);
-		VertexOut out(va, vb, weight);
-		out.sr_Position = lerp(va.sr_Position, vb.sr_Position, weight);
+		Pipeline::VSOut<VSToFS> out(va, vb, weight);
 		return out;
 	}
 
