@@ -12,6 +12,8 @@
 #include "Primitive.h"
 #include "PipelineData.h"
 
+const float CLIP_NEARPLANE_EPS = 1e-10;
+
 class VertexProcessor
 {
 public:
@@ -35,6 +37,12 @@ public:
 			clipSpaceData.push_back(shader.processVertex(vertexIn[index]));
 		}
 
+		/*std::cout << "Input:\n";
+		for (int i = 0; i < vertexCount; i++)
+		{
+			clipSpaceData[i].sr_Position.print();
+		}*/
+
 		switch (primitiveType)
 		{
 			case Primitive::LINE:
@@ -47,20 +55,22 @@ public:
 				break;
 		};
 
+		//std::cout << "Output  " << clipped.size() << "\n";
+
 		for (int i = 0; i < clipped.size(); i++)
 		{
-			// CVV --> NDC --> Screen Space
-			Vec4 pos = clipped[i].sr_Position / clipped[i].sr_Position[3];
+			Vec4& pos = clipped[i].sr_Position;
+			pos[0] /= pos[3], pos[1] /= pos[3], pos[2] /= pos[3];
 			
 			int x = ((pos[0] + 1.0f) / 2.0f) * viewportSize[0];
 			int y = ((pos[1] + 1.0f) / 2.0f) * viewportSize[1];
 
-			// z --> 1 / z，便于后期的透视校正插值
-			float z = 2.0f / (pos[2] + 1.0f);
+			pos[3] = std::max(pos[3], CLIP_NEARPLANE_EPS);
 
+			// 注意：这里tmp.z存的是透视除法后（即NDC）的z值，而tmp.w存的是透视除法前（即CVV中）z值的倒数，用于透视校正插值
 			Pipeline::FSIn<typename Shader::VSToFS> tmp;
 			tmp.data = clipped[i].data;
-			tmp.x = x, tmp.y = y, tmp.z = z;
+			tmp.x = x, tmp.y = y, tmp.z = pos[2], tmp.w = 1.0f / pos[3];
 			outData.push_back(tmp);
 		}
 
@@ -130,7 +140,8 @@ private:
 		}
 
 		std::vector<Pipeline::VSOut<VSToFS>> res;
-		for (int i = 1; i < output.size() - 1; i++)
+
+		for (int i = 1; i + 1 < output.size(); i++)
 		{
 			res.push_back(output[0]);
 			res.push_back(output[i]);
@@ -142,7 +153,7 @@ private:
 
 	static bool inside(Vec4 plane, Vec4 pos)
 	{
-		return dot(plane, pos) >= 0.0f;
+		return dot(plane, pos) > 0.0f;
 	}
 
 	template<typename VSToFS>
@@ -154,7 +165,7 @@ private:
 		float da = dot(va.sr_Position, plane);
 		float db = dot(vb.sr_Position, plane);
 
-		float weight = da / (da - db);
+		float weight = (da - CLIP_NEARPLANE_EPS) / (da - db);
 		Pipeline::VSOut<VSToFS> out(va, vb, weight);
 		return out;
 	}
@@ -192,7 +203,7 @@ private:
 
 const std::vector<Vec4> VertexProcessor::planeNorms =
 {
-	{ 0.0f, 0.0f, 1.0f,  1.0f },
+	{ 0.0f, 0.0f, 1.0f,  0.0f },
 	{ 0.0f, 0.0f,-1.0f,  1.0f },
 	{ 1.0f, 0.0f, 0.0f,  1.0f },
 	{ 0.0f, 1.0f, 0.0f,  1.0f },

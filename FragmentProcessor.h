@@ -19,9 +19,10 @@ public:
 	{
 		for (int i = 0; i < fragmentIn.size(); i++)
 		{
-			float z = adapter.getDepth(fragmentIn[i].x, fragmentIn[i].y);
+			float z = adapter.readDepth(fragmentIn[i].x, fragmentIn[i].y);
 
 			if (fragmentIn[i].z > z) continue;
+
 			shader.processFragment(adapter, fragmentIn[i]);
 			adapter.writeDepth(fragmentIn[i].x, fragmentIn[i].y, fragmentIn[i].z);
 		}

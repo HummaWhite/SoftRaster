@@ -30,14 +30,14 @@ namespace Pipeline
 		FSIn(FSIn& a, FSIn& b, FSIn& c, Vec3 weight)
 		{
 			z = dot(weight, Vec3{ a.z, b.z, c.z });
-			Vec3 correctedWeight = weight * Vec3{ a.z, b.z, c.z } / z;
-
+			w = dot(weight, Vec3{ a.w, b.w, c.w });
+			Vec3 correctedWeight = (weight * Vec3{ a.w, b.w, c.w }) / w;
 			data = VSToFS(a.data, b.data, c.data, correctedWeight);
 		}
 
 		VSToFS data;
 		int x, y;
-		float z;
+		float z, w;
 	};
 }
 

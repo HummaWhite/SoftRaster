@@ -60,7 +60,8 @@ private:
 		float x1 = sorted[1].x, y1 = sorted[1].y;
 		float x2 = sorted[2].x, y2 = sorted[2].y;
 
-		//扫描线光栅化，生成片段
+		// TODO: 使用直线画线算法确定边界消除三角形间缝隙 + 重心系数采用端点计算中间增量插值的方式
+		// 扫描线光栅化，生成片段
 		for (int i = y0; i <= y2; i++)
 		{
 			int endX = (y2 == y0) ? x2 : lerp<float>(x0, x2, float(i - y0) / float(y2 - y0));
@@ -75,14 +76,14 @@ private:
 			int dx = (endX > startX) ? 1 : -1;
 			//startX -= dx, endX += dx;
 
+			Vec2 va = { (float)sorted[0].x, (float)sorted[0].y };
+			Vec2 vb = { (float)sorted[1].x, (float)sorted[1].y };
+			Vec2 vc = { (float)sorted[2].x, (float)sorted[2].y };
+			float area = abs(cross(vc - va, vb - va));
+
 			for (int j = startX; j != endX; j += dx)
 			{
 				Vec2 p = { (float)j, (float)i };
-				Vec2 va = { (float)sorted[0].x, (float)sorted[0].y };
-				Vec2 vb = { (float)sorted[1].x, (float)sorted[1].y };
-				Vec2 vc = { (float)sorted[2].x, (float)sorted[2].y };
-
-				float area = abs(cross(vc - va, vb - va));
 				float la = abs(cross(vb - p, vc - p)) / area;
 				float lb = abs(cross(vc - p, va - p)) / area;
 				float lc = abs(cross(va - p, vb - p)) / area;
@@ -92,7 +93,6 @@ private:
 				VertexData fragment(sorted[0], sorted[1], sorted[2], weight);
 				fragment.x = j;
 				fragment.y = i;
-				fragment.z = 1.0f / fragment.z;
 
 				output.push_back(fragment);
 			}
