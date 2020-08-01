@@ -24,6 +24,19 @@ public:
 		for (int i = 0; i < N; i++) data[i][i] = v;
 	}
 
+	template<int M>
+	Mat<N>(Mat<M>& m)
+	{
+		int lim = M > N ? N : M;
+		for (int i = 0; i < N; i++)
+		{
+			for (int j = 0; j < N; j++)
+			{
+				data[i][j] = m(i, j);
+			}
+		}
+	}
+
 	Mat<N>(std::initializer_list<float> list)
 	{
 		if (list.size() != N)
@@ -307,11 +320,11 @@ static Mat4 ortho(float left, float right, float bottom, float top, float zNear,
 
 	res(0, 0) = 2.0f / (right - left);
 	res(1, 1) = 2.0f / (top - bottom);
-	res(2, 2) = 2.0f / (zNear - zFar);
+	res(2, 2) = zNear - zFar;
 	res(3, 3) = 1.0f;
 	res(0, 3) = (left + right) / (left - right);
 	res(1, 3) = (bottom + top) / (bottom - top);
-	res(2, 3) = (zNear + zFar) / (zNear - zFar);
+	res(2, 3) = zNear / (zNear - zFar);
 
 	return res;
 }
@@ -319,12 +332,12 @@ static Mat4 ortho(float left, float right, float bottom, float top, float zNear,
 static Mat4 perspective(float FOVy, float aspect, float zNear, float zFar)
 {
 	Mat4 res;
-
+	//DX Style，主要是为了后期Reversed-Z方便进行
 	float tant = tan(toRad(FOVy) / 2.0f);
 	res(0, 0) = 1.0f / aspect / tant;
 	res(1, 1) = 1.0f / tant;
-	res(2, 2) = (zNear + zFar) / (zNear - zFar);
-	res(2, 3) = 2 * zNear * zFar / (zNear - zFar);
+	res(2, 2) = zFar / (zNear - zFar);
+	res(2, 3) = zNear * zFar / (zNear - zFar);
 	res(3, 2) = -1.0f;
 
 	return res;

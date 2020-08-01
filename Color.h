@@ -10,12 +10,22 @@
 struct RGB24
 {
 	RGB24() {}
-	RGB24(BYTE _r, BYTE _g, BYTE _b): r(_r), g(_g), b(_b) {}
+	RGB24(BYTE _r, BYTE _g, BYTE _b):
+		r(_r), g(_g), b(_b) 
+	{
+		r = std::min(255, std::max(0, (int)r));
+		g = std::min(255, std::max(0, (int)g));
+		b = std::min(255, std::max(0, (int)b));
+	}
 
 	RGB24(Vec3 color)
 	{
-		color *= 255;
-		*this = RGB24(color[0], color[1], color[2]);
+		Vec3 c = color;
+		c[0] = std::min(1.0f, std::max(0.0f, c[0]));
+		c[1] = std::min(1.0f, std::max(0.0f, c[1]));
+		c[2] = std::min(1.0f, std::max(0.0f, c[2]));
+		c *= 255;
+		*this = RGB24(c[0], c[1], c[2]);
 	}
 	
 	BYTE r, g, b;
