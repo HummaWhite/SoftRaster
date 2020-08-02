@@ -2,6 +2,7 @@
 #define RASTERIZER_H
 
 #include <vector>
+#include <cstdlib>
 
 #include "math/Vector.h"
 #include "math/Matrix.h"
@@ -9,6 +10,7 @@
 #include "Shader.h"
 #include "Primitive.h"
 #include "PipelineData.h"
+#include "LineDrawer.h"
 
 class Rasterizer
 {
@@ -59,36 +61,48 @@ private:
 		float x0 = sorted[0].x, y0 = sorted[0].y;
 		float x1 = sorted[1].x, y1 = sorted[1].y;
 		float x2 = sorted[2].x, y2 = sorted[2].y;
+		int ty = y2, by = y0;
 
-		// TODO: 使用直线画线算法确定边界消除三角形间缝隙 + 重心系数采用端点计算中间增量插值的方式
 		// 扫描线光栅化，生成片段
-		for (int i = y0; i <= y2; i++)
+		LineDrawer ab(x0, y0, x1, y1);
+		LineDrawer bc(x1, y1, x2, y2);
+		LineDrawer ac(x0, y0, x2, y2);
+		LineDrawer* dw[] = { &ab, &bc, &ac };
+
+		int sx[ty - by + 1], ex[ty - by + 1];
+
+		memset(sx, 0x3f, sizeof(sx));
+		memset(ex, 0x00, sizeof(ex));
+
+		for (int i = 0; i < 3; i++)
 		{
-			int endX = (y2 == y0) ? x2 : lerp<float>(x0, x2, float(i - y0) / float(y2 - y0));
-			int startX = x1;
+			while (!dw[i]->finished())
+			{
+				int x = dw[i]->x(), y = dw[i]->y();
 
-			if (i == y0) startX = (y1 == y0) ? x1 : x0;
-			else if (i < y1) startX = lerp<float>(x0, x1, float(i - y0) / float(y1 - y0));
-			else if (i < y2) startX = lerp<float>(x1, x2, float(i - y1) / float(y2 - y1));
-			else if (i == y2) startX = (y1 == y2) ? x1 : x2;
+				sx[y - by] = std::min(sx[y - by], x);
+				ex[y - by] = std::max(ex[y - by], x);
 
-			//std::cout << i << "  " << startX << "  " << endX << std::endl;
-			int dx = (endX > startX) ? 1 : -1;
-			//startX -= dx, endX += dx;
+				dw[i]->nextStep();
+			}
 
-			Vec2 va = { (float)sorted[0].x, (float)sorted[0].y };
-			Vec2 vb = { (float)sorted[1].x, (float)sorted[1].y };
-			Vec2 vc = { (float)sorted[2].x, (float)sorted[2].y };
-			float area = abs(cross(vc - va, vb - va));
+			int x = dw[i]->x(), y = dw[i]->y();
+			sx[y - by] = std::min(sx[y - by], x);
+			ex[y - by] = std::max(ex[y - by], x);
+		}
 
-			for (int j = startX; j != endX; j += dx)
+		Vec2 va = { x0, y0 };
+		Vec2 vb = { x1, y1 };
+		Vec2 vc = { x2, y2 };
+
+		for (int i = by; i <= ty; i++)
+		{
+			int l = sx[i - by], r = ex[i - by];
+
+			for (int j = l; j <= r; j++)
 			{
 				Vec2 p = { (float)j, (float)i };
-				float la = abs(cross(vb - p, vc - p)) / area;
-				float lb = abs(cross(vc - p, va - p)) / area;
-				float lc = abs(cross(va - p, vb - p)) / area;
-
-				Vec3 weight = { la, lb, lc };
+				Vec3 weight = getWeight(va, vb, vc, p);
 
 				VertexData fragment(sorted[0], sorted[1], sorted[2], weight);
 				fragment.x = j;
@@ -98,6 +112,16 @@ private:
 			}
 		}
 		return output;
+	}
+
+	static Vec3 getWeight(Vec2& va, Vec2& vb, Vec2& vc, Vec2& p)
+	{
+		float area = abs(cross(vc - va, vb - va));
+		float la = abs(cross(vb - p, vc - p)) / area;
+		float lb = abs(cross(vc - p, va - p)) / area;
+		float lc = abs(cross(va - p, vb - p)) / area;
+
+		return { la, lb, lc };
 	}
 };
 

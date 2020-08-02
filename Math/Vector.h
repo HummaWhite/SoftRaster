@@ -208,6 +208,22 @@ Vec<N> normalize(Vec<N> v)
 	return v.normalized();
 }
 
+template<int N>
+Vec<N> pow(Vec<N> v, float x)
+{
+	Vec<N> res;
+	for (int i = 0; i < N; i++) res[i] = pow(v[i], x);
+	return res;
+}
+
+template<int N>
+Vec<N> pow(Vec<N> v, Vec<N> x)
+{
+	Vec<N> res;
+	for (int i = 0; i < N; i++) res[i] = pow(v[i], x[i]);
+	return res;
+}
+
 template<typename T>
 T lerp(T from, T to, float weight)
 {

@@ -39,40 +39,23 @@ void draw(int x1, int y1, int x2, int y2, FrameBufferDouble<RGB24>& buffer)
 		}
 	}
 
-	int stepX = (x1 < x2) ? 1 : -1;
-	int stepY = (y1 < y2) ? 1 : -1;
-	int dx = abs(x2 - x1);
-	int dy = abs(y2 - y1);
+	LineDrawer dw(x1, y1, x2, y2);
 
-	if (dx > dy)
+	while (!dw.finished())
 	{
-		for (int x = x1, y = y1, eps = 0; x != x2; x += stepX)
-		{
-			eps += dy;
-			if (eps * 2 >= dx)
-			{
-				y += stepY;
-				eps -= dx;
-			}
+		int x = dw.x(), y = dw.y();
 
-			if (x >= W_WIDTH || x < 0 || y >= W_HEIGHT || y < 0) continue;
+		if (x < W_WIDTH && x >= 0 && y < W_HEIGHT && y >= 0)
+		{
 			buffer(x, W_HEIGHT - y - 1) = { 255, 255, 255 };
 		}
+		dw.nextStep();
 	}
-	else
-	{
-		for (int x = x1, y = y1, eps = 0; y != y2; y += stepY)
-		{
-			eps += dx;
-			if (eps * 2 >= dy)
-			{
-				x += stepX;
-				eps -= dy;
-			}
 
-			if (x >= W_WIDTH || x < 0 || y >= W_HEIGHT || y < 0) continue;
-			buffer(x, W_HEIGHT - y - 1) = { 255, 255, 255 };
-		}
+	int x = dw.x(), y = dw.y();
+	if (x < W_WIDTH && x >= 0 && y < W_HEIGHT && y >= 0)
+	{
+		buffer(x, W_HEIGHT - y - 1) = { 255, 255, 255 };
 	}
 }
 
@@ -136,13 +119,21 @@ void render(int id)
 	shader.model = model;
 	shader.view = camera.viewMatrix();
 	shader.proj = camera.projMatrix(W_WIDTH, W_HEIGHT);
+	shader.albedo = { 0.9f, 0.7f, 0.5f };
+	shader.metallic = 1.0f;
+	shader.roughness = 0.3f;
+	shader.ao = 0.2f;
+	shader.viewPos = camera.pos();
+	shader.lightStrength = 10.0f;
 
 	std::vector<Pipeline::FSIn<SimpleShader::VSToFS>> vertexOut = VertexProcessor::processVertex(vb, shader, { W_WIDTH, W_HEIGHT }, Primitive::TRIANGLE);
 
-	std::vector<Pipeline::FSIn<SimpleShader::VSToFS>> fragments = Rasterizer::rasterize(vertexOut);
-	//std::cout << fragments.size() << std::endl;
-
-	if (renderMode != 2) FragmentProcessor::processFragment(adapter, shader, fragments);
+	if (renderMode != 2)
+	{
+		std::vector<Pipeline::FSIn<SimpleShader::VSToFS>> fragments = Rasterizer::rasterize(vertexOut);
+		//std::cout << fragments.size() << std::endl;
+		FragmentProcessor::processFragment(adapter, shader, fragments);
+	}
 
 	if (renderMode != 0) drawLines(vertexOut);
 
