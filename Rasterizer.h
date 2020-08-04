@@ -116,10 +116,18 @@ private:
 
 	static Vec3 getWeight(Vec2& va, Vec2& vb, Vec2& vc, Vec2& p)
 	{
-		float area = abs(cross(vc - va, vb - va));
-		float la = abs(cross(vb - p, vc - p)) / area;
-		float lb = abs(cross(vc - p, va - p)) / area;
-		float lc = abs(cross(va - p, vb - p)) / area;
+		const float eps = 1e-3;
+
+		if (equals(va, vb, eps) && equals(vb, vc, eps)) return { 1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f };
+		if (equals(va, vb, eps)) return Vec3{ (vc - p).length() / 2.0f, (vc - p).length() / 2.0f, (p - va).length() } / (vc - va).length();
+		if (equals(vb, vc, eps)) return Vec3{ (va - p).length() / 2.0f, (va - p).length() / 2.0f, (p - vb).length() } / (va - vb).length();
+		if (equals(vc, va, eps)) return Vec3{ (vb - p).length() / 2.0f, (vb - p).length() / 2.0f, (p - vc).length() } / (vb - vc).length();
+
+		float area = cross(vc - va, vb - va);
+
+		float la = cross(vc - p, vb - p) / area;
+		float lb = cross(va - p, vc - p) / area;
+		float lc = cross(vb - p, va - p) / area;
 
 		return { la, lb, lc };
 	}

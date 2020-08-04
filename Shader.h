@@ -65,7 +65,7 @@ struct SimpleShader
 	void processFragment(FrameBufferAdapter& adapter, Pipeline::FSIn<VSToFS> in)
 	{
 		Vec3 result(0.0f);
-		Vec3 lightPos = { 1.0f, 2.0f, 3.0f };
+		Vec3 lightPos = { 1.0f, -2.0f, 3.0f };
 		Vec3 lightColor = { 1.0f, 1.0f, 1.0f };
 
 		Vec3 L = (lightPos - in.data.pos).normalized();

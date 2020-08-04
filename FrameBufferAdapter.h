@@ -10,39 +10,53 @@
 
 struct FrameBufferAdapter
 {
-	void writeColor(int index, int x, int y, Vec3 color)
+	void writeColor(int index, Vec3 color)
 	{
-		if (index >= colorAttachments.size()) return;
+		if (index >= colorAttachments.size() || index < 0) return;
 		if (colorAttachments[index] == nullptr) return;
 
 		FrameBufferDouble<RGB24> *buf = colorAttachments[index];
 		if (x < 0 || x >= buf->width() || y < 0 || y >= buf->height()) return;
 
-		(*buf)(x, buf->height() - y) = RGB24(color);
+		(*buf)(x, buf->height() - y - 1) = RGB24(color);
 	}
 
-	void writeDepth(int x, int y, float val)
+	void writeDepth(float val)
 	{
 		if (depthAttachment == nullptr) return;
 
 		FrameBufferDouble<float> *buf = depthAttachment;
 		if (x < 0 || x >= buf->width() || y < 0 || y >= buf->height()) return;
 
-		(*buf)(x, buf->height() - y) = val;
+		(*buf)(x, buf->height() - y - 1) = val;
 	}
 
-	float getDepth(int x, int y)
+	float readDepth()
 	{
 		if (depthAttachment == nullptr) return 1.0f;
 
 		FrameBufferDouble<float> *buf = depthAttachment;
 		if (x < 0 || x >= buf->width() || y < 0 || y >= buf->height()) return 1.0f;
 
-		return (*buf)(x, buf->height() - y);
+		return (*buf)(x, buf->height() - y - 1);
+	}
+
+	void swapBuffers()
+	{
+		for (auto buf : colorAttachments)
+		{
+			buf->swap();
+		}
+
+		if (depthAttachment)
+		{
+			depthAttachment->swap();
+		}
 	}
 
 	std::vector<FrameBufferDouble<RGB24>*> colorAttachments;
-	FrameBufferDouble<float> *depthAttachment;
+	FrameBufferDouble<float> *depthAttachment = nullptr;
+	int x, y;
 };
 
 #endif

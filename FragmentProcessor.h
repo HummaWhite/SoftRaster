@@ -21,12 +21,11 @@ public:
 		{
 			adapter.x = fragmentIn[i].x;
 			adapter.y = fragmentIn[i].y;
-			float z = adapter.readDepth();
 
-			if (fragmentIn[i].z > z) continue;
+			if (fragmentIn[i].z > adapter.readDepth()) continue;
 
-			shader.processFragment(adapter, fragmentIn[i]);
 			adapter.writeDepth(fragmentIn[i].z);
+			shader.processFragment(adapter, fragmentIn[i]);
 		}
 	}
 

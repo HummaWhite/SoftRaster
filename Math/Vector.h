@@ -236,4 +236,15 @@ T triLerp(T a, T b, T c, Vec3 weight)
 	return a * weight[0] + b * weight[1] + c * weight[2];
 }
 
+template<int N>
+bool equals(Vec<N>& a, Vec<N>& b, float eps)
+{
+	bool equal = true;
+	for (int i = 0; i < N; i++)
+	{
+		if (abs(a[i] - b[i]) > eps) equal = false;
+	}
+	return equal;
+}
+
 #endif

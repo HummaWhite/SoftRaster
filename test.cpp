@@ -13,51 +13,13 @@
 #include "FrameBufferAdapter.h"
 #include "FragmentProcessor.h"
 #include "Shape.h"
+#include "Renderer.h"
+#include "ObjReader.h"
 
 const int W_WIDTH = 960;
 const int W_HEIGHT = 540;
 
 bool keyPressing[256] = { false };
-
-void draw(int x1, int y1, int x2, int y2, FrameBufferDouble<RGB24>& buffer)
-{
-	for (int i = x1 - 4; i <= x1 + 4; i++)
-	{
-		for (int j = y1 - 4; j <= y1 + 4; j++)
-		{
-			if (i >= W_WIDTH || i < 0 || j >= W_HEIGHT || j < 0) continue;
-			buffer(i, W_HEIGHT - j - 1) = { 255, 0, 255 };
-		}
-	}
-
-	for (int i = x2 - 4; i <= x2 + 4; i++)
-	{
-		for (int j = y2 - 4; j <= y2 + 4; j++)
-		{
-			if (i >= W_WIDTH || i < 0 || j >= W_HEIGHT || j < 0) continue;
-			buffer(i, W_HEIGHT - j - 1) = { 255, 0, 255 };
-		}
-	}
-
-	LineDrawer dw(x1, y1, x2, y2);
-
-	while (!dw.finished())
-	{
-		int x = dw.x(), y = dw.y();
-
-		if (x < W_WIDTH && x >= 0 && y < W_HEIGHT && y >= 0)
-		{
-			buffer(x, W_HEIGHT - y - 1) = { 255, 255, 255 };
-		}
-		dw.nextStep();
-	}
-
-	int x = dw.x(), y = dw.y();
-	if (x < W_WIDTH && x >= 0 && y < W_HEIGHT && y >= 0)
-	{
-		buffer(x, W_HEIGHT - y - 1) = { 255, 255, 255 };
-	}
-}
 
 FrameBufferDouble<float> depthBuffer(W_WIDTH, W_HEIGHT);
 FrameBufferDouble<RGB24> colorBuffer(W_WIDTH, W_HEIGHT);
@@ -65,32 +27,9 @@ Mat4 model(1.0f);
 SimpleShader shader;
 Camera camera({ 0.0f, -5.0f, 2.0f });
 FrameBufferAdapter adapter;
+Renderer renderer;
 
 std::vector<SimpleShader::VSIn> vb;
-
-int renderMode = 0;
-
-void drawLines(std::vector<Pipeline::FSIn<SimpleShader::VSToFS>>& vertexData)
-{
-	for (int i = 0; i < vertexData.size() / 3; i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			int x0 = vertexData[i * 3 + 0].x;
-			int y0 = vertexData[i * 3 + 0].y;
-
-			int x1 = vertexData[i * 3 + 1].x;
-			int y1 = vertexData[i * 3 + 1].y;
-
-			int x2 = vertexData[i * 3 + 2].x;
-			int y2 = vertexData[i * 3 + 2].y;
-
-			draw(x0, y0, x1, y1, colorBuffer);
-			draw(x1, y1, x2, y2, colorBuffer);
-			draw(x0, y0, x2, y2, colorBuffer);
-		}
-	}
-}
 
 bool F1Pressed = false;
 bool cursorDisabled = false;
@@ -112,7 +51,7 @@ void render(int id)
 
 	if (!cursorDisabled) processKey();
 
-	model = rotate(model, { 1.0f, 0.0f, 1.0f }, 1.0f);
+	model = rotate(model, { 0.0f, 1.0f, 0.0f }, 1.0f);
 	Mat3 m(model);
 	m = inverse(m).transpose();
 
@@ -121,25 +60,15 @@ void render(int id)
 	shader.proj = camera.projMatrix(W_WIDTH, W_HEIGHT);
 	shader.albedo = { 0.9f, 0.7f, 0.5f };
 	shader.metallic = 1.0f;
-	shader.roughness = 0.3f;
+	shader.roughness = 0.5f;
 	shader.ao = 0.2f;
 	shader.viewPos = camera.pos();
 	shader.lightStrength = 10.0f;
 
-	std::vector<Pipeline::FSIn<SimpleShader::VSToFS>> vertexOut = VertexProcessor::processVertex(vb, shader, { W_WIDTH, W_HEIGHT }, Primitive::TRIANGLE);
-
-	if (renderMode != 2)
-	{
-		std::vector<Pipeline::FSIn<SimpleShader::VSToFS>> fragments = Rasterizer::rasterize(vertexOut);
-		//std::cout << fragments.size() << std::endl;
-		FragmentProcessor::processFragment(adapter, shader, fragments);
-	}
-
-	if (renderMode != 0) drawLines(vertexOut);
+	renderer.draw(vb, shader, adapter);
 
 	flushScreen((BYTE*)colorBuffer.getCurrentBuffer().bufPtr(), W_WIDTH, W_HEIGHT);
-	colorBuffer.swap();
-	depthBuffer.swap();
+	adapter.swapBuffers();
 }
 
 int lastCursorX = W_WIDTH / 2;
@@ -178,7 +107,7 @@ void keyboard(int key, int event)
 	{
 		keyPressing[key] = true;
 		if (key == VK_F1) cursorDisabled ^= 1;
-		if (key == 'M') renderMode = (renderMode + 1) % 3;
+		if (key == 'M') renderer.renderMode = (renderer.renderMode + 1) % 4;
 	}
 	if (event == KEY_UP) keyPressing[key] = false;
 }
@@ -187,14 +116,20 @@ int Setup()
 {
 	initWindow("Test", DEFAULT, DEFAULT, W_WIDTH, W_HEIGHT);
 
-	for (int i = 0; i < 36 * 8; i += 8)
+	ObjReader objReader;
+	std::vector<float> data = objReader.readFile("model/teapot20.obj");
+	std::cout << data.size() << "\n";
+
+	for (int i = 0; i < data.size(); i += 8)
 	{
 		SimpleShader::VSIn vertex;
-		vertex.pos = { CUBE_VERTICES[i + 0], CUBE_VERTICES[i + 1], CUBE_VERTICES[i + 2] };
-		vertex.texCoord = { CUBE_VERTICES[i + 3], CUBE_VERTICES[i + 4] };
-		vertex.norm = { CUBE_VERTICES[i + 5], CUBE_VERTICES[i + 6], CUBE_VERTICES[i + 7] };
+		vertex.pos = { data[i + 0], data[i + 1], data[i + 2] };
+		vertex.texCoord = { data[i + 3], data[i + 4] };
+		vertex.norm = { data[i + 5], data[i + 6], data[i + 7] };
 		vb.push_back(vertex);
 	}
+
+	model = rotate(model, { 1.0f, 0.0f, 0.0f }, 90.0f);
 	
 	camera.setFOV(75.0f);
 	camera.setPlanes(0.1f, 100.0f);
