@@ -15,6 +15,7 @@
 #include "Shape.h"
 #include "Renderer.h"
 #include "ObjReader.h"
+#include "Texture.h"
 
 const int W_WIDTH = 960;
 const int W_HEIGHT = 540;
@@ -28,6 +29,7 @@ SimpleShader shader;
 Camera camera({ 0.0f, -5.0f, 2.0f });
 FrameBufferAdapter adapter;
 Renderer renderer;
+TextureRGB24 tex;
 
 std::vector<SimpleShader::VSIn> vb;
 
@@ -51,19 +53,20 @@ void render(int id)
 
 	if (!cursorDisabled) processKey();
 
-	model = rotate(model, { 0.0f, 1.0f, 0.0f }, 1.0f);
+	//model = rotate(model, { 0.0f, 1.0f, 0.0f }, 1.0f);
 	Mat3 m(model);
 	m = inverse(m).transpose();
 
 	shader.model = model;
 	shader.view = camera.viewMatrix();
 	shader.proj = camera.projMatrix(W_WIDTH, W_HEIGHT);
-	shader.albedo = { 0.9f, 0.7f, 0.5f };
+	shader.albedo = { 0.5f, 0.7f, 0.9f };
 	shader.metallic = 1.0f;
-	shader.roughness = 0.5f;
+	shader.roughness = 0.6f;
 	shader.ao = 0.2f;
 	shader.viewPos = camera.pos();
-	shader.lightStrength = 10.0f;
+	shader.lightStrength = 20.0f;
+	shader.tex = &tex;
 
 	renderer.draw(vb, shader, adapter);
 
@@ -139,6 +142,8 @@ int Setup()
 
 	adapter.colorAttachments.push_back(&colorBuffer);
 	adapter.depthAttachment = &depthBuffer;
+
+	Texture::load(tex, "texture/diamond_ore.png");
 
 	registerTimerEvent(render);
 	registerMouseEvent(mouse);

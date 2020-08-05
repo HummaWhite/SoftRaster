@@ -23,7 +23,7 @@ public:
 
 		int triangleCount = vertexData.size() / 3;
 
-		for (int i = 0; i < triangleCount; i++)
+		for (register int i = 0; i < triangleCount; i++)
 		{
 			VertexData va = vertexData[i * 3 + 0];
 			VertexData vb = vertexData[i * 3 + 1];
@@ -95,7 +95,7 @@ private:
 		Vec2 vb = { x1, y1 };
 		Vec2 vc = { x2, y2 };
 
-		for (int i = by; i <= ty; i++)
+		for (register int i = by; i <= ty; i++)
 		{
 			int l = sx[i - by], r = ex[i - by];
 
@@ -119,9 +119,9 @@ private:
 		const float eps = 1e-3;
 
 		if (equals(va, vb, eps) && equals(vb, vc, eps)) return { 1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f };
-		if (equals(va, vb, eps)) return Vec3{ (vc - p).length() / 2.0f, (vc - p).length() / 2.0f, (p - va).length() } / (vc - va).length();
-		if (equals(vb, vc, eps)) return Vec3{ (va - p).length() / 2.0f, (va - p).length() / 2.0f, (p - vb).length() } / (va - vb).length();
-		if (equals(vc, va, eps)) return Vec3{ (vb - p).length() / 2.0f, (vb - p).length() / 2.0f, (p - vc).length() } / (vb - vc).length();
+		if (equals(va, vb, eps)) return Vec3{ (vc - p).length() / 2.0f, (vc - p).length() / 2.0f, (p - va).length() } / ((vc - va).length() + eps);
+		if (equals(vb, vc, eps)) return Vec3{ (va - p).length() / 2.0f, (va - p).length() / 2.0f, (p - vb).length() } / ((va - vb).length() + eps);
+		if (equals(vc, va, eps)) return Vec3{ (vb - p).length() / 2.0f, (vb - p).length() / 2.0f, (p - vc).length() } / ((vb - vc).length() + eps);
 
 		float area = cross(vc - va, vb - va);
 
