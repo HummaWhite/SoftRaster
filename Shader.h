@@ -66,8 +66,6 @@ struct SimpleShader
 	void processFragment(FrameBufferAdapter& adapter, Pipeline::FSIn<VSToFS> in)
 	{
 		Vec3 result(0.0f);
-		Vec3 lightPos = { 1.0f, -2.0f, 3.0f };
-		Vec3 lightColor = { 1.0f, 1.0f, 1.0f };
 
 		Vec3 L = (lightPos - in.data.pos).normalized();
 		Vec3 N = in.data.norm;
@@ -96,11 +94,11 @@ struct SimpleShader
 		Vec3 Lo = ((kD * albedo) / Pi + specular) * radiance * NdotL;
 		Lo += Vec3(0.03f) * albedo * ao;
 
-		Vec4 texColor = texture(tex, in.data.texCoord, NEAREST);
-		Vec3 addition = { texColor[0], texColor[1], texColor[2] };
-
 		float GAMMA = 2.2f;
 		result = pow(Lo, 1.0f / GAMMA);
+
+		Vec4 texColor = texture(tex, in.data.texCoord, LINEAR);
+		Vec3 addition = { texColor[0], texColor[1], texColor[2] };
 
 		result *= addition;
 
@@ -160,8 +158,11 @@ struct SimpleShader
 	float ao = 0.2f;
 
 	float lightStrength;
+	Vec3 lightPos;
+	Vec3 lightColor;
 
 	TextureRGB24 *tex = nullptr;
+	TextureRGB24 *env = nullptr;
 };
 
 #endif

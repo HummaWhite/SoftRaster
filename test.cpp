@@ -16,9 +16,10 @@
 #include "Renderer.h"
 #include "ObjReader.h"
 #include "Texture.h"
+#include "FPSTimer.h"
 
-const int W_WIDTH = 960;
-const int W_HEIGHT = 540;
+const int W_WIDTH = 1280;
+const int W_HEIGHT = 720;
 
 bool keyPressing[256] = { false };
 
@@ -30,11 +31,16 @@ Camera camera({ 0.0f, -5.0f, 2.0f });
 FrameBufferAdapter adapter;
 Renderer renderer;
 TextureRGB24 tex;
+TextureRGB24 env;
+
+Vec3 lightPos = { 1.0f, -2.0f, 3.0f };
+Vec3 lightColor = { 1.0f, 1.0f, 1.0f };
 
 std::vector<SimpleShader::VSIn> vb;
 
 bool F1Pressed = false;
 bool cursorDisabled = false;
+FPSTimer fpsTimer;
 
 void processKey()
 {
@@ -50,6 +56,7 @@ void render(int id)
 {
 	colorBuffer.fill({ 0, 0, 0 });;
 	depthBuffer.fill(1.0f);
+	fpsTimer.work();
 
 	if (!cursorDisabled) processKey();
 
@@ -60,13 +67,16 @@ void render(int id)
 	shader.model = model;
 	shader.view = camera.viewMatrix();
 	shader.proj = camera.projMatrix(W_WIDTH, W_HEIGHT);
-	shader.albedo = { 0.5f, 0.7f, 0.9f };
+	shader.albedo = { 1.0f, 1.0f, 1.0f };
 	shader.metallic = 1.0f;
 	shader.roughness = 0.6f;
 	shader.ao = 0.2f;
 	shader.viewPos = camera.pos();
 	shader.lightStrength = 20.0f;
 	shader.tex = &tex;
+	shader.env = &env;
+	shader.lightPos = lightPos;
+	shader.lightColor = lightColor;
 
 	renderer.draw(vb, shader, adapter);
 
@@ -144,6 +154,7 @@ int Setup()
 	adapter.depthAttachment = &depthBuffer;
 
 	Texture::load(tex, "texture/diamond_ore.png");
+	Texture::load(env, "texture/pixel.png");
 
 	registerTimerEvent(render);
 	registerMouseEvent(mouse);

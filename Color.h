@@ -27,6 +27,16 @@ struct RGB24
 		c *= 255;
 		*this = RGB24(c[0], c[1], c[2]);
 	}
+
+	Vec3 toVec3()
+	{
+		return Vec3{ (float)r, (float)g, (float)b } / 255.0f;
+	}
+
+	Vec4 toVec4()
+	{
+		return Vec4{ (float)r, (float)g, (float)b, 0.0f } / 255.0f;
+	}
 	
 	BYTE r, g, b;
 };

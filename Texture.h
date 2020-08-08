@@ -63,33 +63,7 @@ namespace Texture
 	}*/
 }
 
-Vec4 texture(TextureRGB24& tex, Vec2 uv, int filterType)
-{
-	Vec4 res(1.0f);
-
-	float x = (tex.width - 1) * uv[0];
-	float y = (tex.height - 1) * uv[1];
-
-	int lx = x, ly = y;
-
-	if (filterType == NEAREST)
-	{
-		int u = (x - lx < lx + 1 - x) ? lx : lx + 1;
-		int v = (y - ly < ly + 1 - y) ? ly : ly + 1;
-
-		if (u < 0 || u >= tex.width || v < 0 || v >= tex.height) return Vec4(0.0f);
-
-		std::cout << &tex << "  " << u << "  " << v << std::endl;
-
-		RGB24 color = tex(u, v);
-
-		return { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f };
-	}
-
-	return Vec4(1.0f);
-}
-
-Vec4 texture(TextureRGB24 *tex, Vec2 uv, int filterType)
+inline Vec4 texture(TextureRGB24* tex, Vec2 uv, int filterType)
 {
 	if (tex == nullptr) return Vec4(0.0f);
 
@@ -98,21 +72,30 @@ Vec4 texture(TextureRGB24 *tex, Vec2 uv, int filterType)
 	float x = (tex->width - 1) * uv[0];
 	float y = (tex->height - 1) * uv[1];
 
-	int lx = x, ly = y;
-
 	if (filterType == NEAREST)
 	{
-		int u = (x - lx < lx + 1 - x) ? lx : lx + 1;
-		int v = (y - ly < ly + 1 - y) ? ly : ly + 1;
-		
-		if (u < 0 || u >= tex->width || v < 0 || v >= tex->height) return Vec4(0.0f);
+		int u = (int)(x - 0.5f + tex->width) % tex->width;
+		int v = (int)(y - 0.5f + tex->height) % tex->height;
 
-		RGB24 color = (*tex)(u, v);
-
-		return { color.r / 255.0f, color.g / 255.0f, color.b / 255.0f, 1.0f };
+		return (*tex)(u, v).toVec4();
 	}
+	else if (filterType == LINEAR)
+	{
+		int u1 = (int)(x + tex->width) % tex->width;
+		int v1 = (int)(y + tex->height) % tex->height;
+		int u2 = (int)(x + 1.0f + tex->width) % tex->width;
+		int v2 = (int)(y + 1.0f + tex->height) % tex->height;
 
-	return Vec4(1.0f);
+		Vec4 c1 = (*tex)(u1, v1).toVec4();
+		Vec4 c2 = (*tex)(u2, v1).toVec4();
+		Vec4 c3 = (*tex)(u1, v2).toVec4();
+		Vec4 c4 = (*tex)(u2, v2).toVec4();
+
+		float lx = x - (int)x;
+		float ly = y - (int)y;
+
+		return lerp(lerp(c1, c2, lx), lerp(c3, c4, lx), ly);
+	}
 }
 
 #endif

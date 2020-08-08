@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cstdlib>
+#include <thread>
 
 #include "math/Vector.h"
 #include "math/Matrix.h"
@@ -23,7 +24,41 @@ public:
 
 		int triangleCount = vertexData.size() / 3;
 
-		for (register int i = 0; i < triangleCount; i++)
+		const int maxThreads = std::thread::hardware_concurrency();
+
+		std::vector<VertexData> triangles[maxThreads];
+		std::thread threads[maxThreads];
+
+		for (int i = 0; i < maxThreads; i++)
+		{
+			int start = (triangleCount / maxThreads) * i;
+			int end = std::min(triangleCount, (triangleCount / maxThreads) * (i + 1));
+
+			threads[i] = std::thread(Rasterizer::processTriangles<VertexData>, std::ref(triangles[i]), std::ref(vertexData), start, end);
+		}
+
+		for (auto& thread : threads)
+		{
+			thread.join();
+		}
+
+		for (int i = 0; i < maxThreads; i++)
+		{
+			outData.insert(outData.end(), triangles[i].begin(), triangles[i].end());
+		}
+
+		return outData;
+	}
+
+private:
+	template<typename VertexData>
+	static void processTriangles(
+		std::vector<VertexData>& outData,
+		std::vector<VertexData>& vertexData,
+		int start,
+		int end)
+	{
+		for (register int i = start; i < end; i++)
 		{
 			VertexData va = vertexData[i * 3 + 0];
 			VertexData vb = vertexData[i * 3 + 1];
@@ -33,11 +68,9 @@ public:
 
 			outData.insert(outData.end(), triangle.begin(), triangle.end());
 		}
-
-		return outData;
 	}
 
-private:
+
 	template<typename VertexData>
 	static std::vector<VertexData> processTriangle(
 			VertexData& v0,
@@ -118,12 +151,17 @@ private:
 	{
 		const float eps = 1e-3;
 
-		if (equals(va, vb, eps) && equals(vb, vc, eps)) return { 1.0f / 3.0f, 1.0f / 3.0f, 1.0f / 3.0f };
+		if (equals(va, vb, eps) && equals(vb, vc, eps)) return Vec3(1.0f) / 3.0f;
 		if (equals(va, vb, eps)) return Vec3{ (vc - p).length() / 2.0f, (vc - p).length() / 2.0f, (p - va).length() } / ((vc - va).length() + eps);
 		if (equals(vb, vc, eps)) return Vec3{ (va - p).length() / 2.0f, (va - p).length() / 2.0f, (p - vb).length() } / ((va - vb).length() + eps);
 		if (equals(vc, va, eps)) return Vec3{ (vb - p).length() / 2.0f, (vb - p).length() / 2.0f, (p - vc).length() } / ((vb - vc).length() + eps);
 
 		float area = cross(vc - va, vb - va);
+
+		if (abs(area) <= eps)
+		{
+			return Vec3(1.0f) / 3.0f;
+		}
 
 		float la = cross(vc - p, vb - p) / area;
 		float lb = cross(va - p, vc - p) / area;
