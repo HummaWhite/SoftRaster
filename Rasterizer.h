@@ -13,12 +13,20 @@
 #include "PipelineData.h"
 #include "LineDrawer.h"
 
+enum
+{
+	CULL_NONE = 0,
+	CULL_FRONT,
+	CULL_BACK
+} CullFaceMode;
+
 class Rasterizer
 {
 public:
 	template<typename VertexData>
 	static std::vector<VertexData> rasterize(
-			std::vector<VertexData>& vertexData)
+			std::vector<VertexData>& vertexData,
+			int cullFaceMode)
 	{
 		std::vector<VertexData> outData;
 
@@ -34,7 +42,14 @@ public:
 			int start = (triangleCount / maxThreads) * i;
 			int end = std::min(triangleCount, (triangleCount / maxThreads) * (i + 1));
 
-			threads[i] = std::thread(Rasterizer::processTriangles<VertexData>, std::ref(triangles[i]), std::ref(vertexData), start, end);
+			threads[i] = std::thread
+			(
+				processTriangles<VertexData>,
+				std::ref(triangles[i]),
+				std::ref(vertexData),
+				start, end,
+				cullFaceMode
+			);
 		}
 
 		for (auto& thread : threads)
@@ -56,13 +71,20 @@ private:
 		std::vector<VertexData>& outData,
 		std::vector<VertexData>& vertexData,
 		int start,
-		int end)
+		int end,
+		int cullFaceMode)
 	{
 		for (register int i = start; i < end; i++)
 		{
 			VertexData va = vertexData[i * 3 + 0];
 			VertexData vb = vertexData[i * 3 + 1];
 			VertexData vc = vertexData[i * 3 + 2];
+
+			if (cullFaceMode)
+			{
+				float coef = cullFaceMode == CULL_BACK ? 1.0f : -1.0f;
+				if (coef * cross(Vec2{ float(vc.x - va.x), float(vc.y - va.y) }, Vec2{ float(vb.x - va.x), float(vb.y - va.y) }) > 0.0f) continue;
+			}
 
 			std::vector<VertexData> triangle = processTriangle(va, vb, vc);
 

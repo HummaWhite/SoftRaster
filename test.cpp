@@ -27,7 +27,7 @@ FrameBufferDouble<float> depthBuffer(W_WIDTH, W_HEIGHT);
 FrameBufferDouble<RGB24> colorBuffer(W_WIDTH, W_HEIGHT);
 Mat4 model(1.0f);
 SimpleShader shader;
-Camera camera({ 0.0f, -5.0f, 2.0f });
+Camera camera({ 0.0f, -5.0f, 3.0f });
 FrameBufferAdapter adapter;
 Renderer renderer;
 TextureRGB24 tex;
@@ -69,10 +69,10 @@ void render(int id)
 	shader.proj = camera.projMatrix(W_WIDTH, W_HEIGHT);
 	shader.albedo = { 1.0f, 1.0f, 1.0f };
 	shader.metallic = 1.0f;
-	shader.roughness = 0.6f;
-	shader.ao = 0.2f;
+	shader.roughness = 1.0f;
+	shader.ao = 0.1f;
 	shader.viewPos = camera.pos();
-	shader.lightStrength = 20.0f;
+	shader.lightStrength = exp(2.0f);
 	shader.tex = &tex;
 	shader.env = &env;
 	shader.lightPos = lightPos;
@@ -155,6 +155,8 @@ int Setup()
 
 	Texture::load(tex, "texture/diamond_ore.png");
 	Texture::load(env, "texture/pixel.png");
+
+	renderer.cullFaceMode = CULL_BACK;
 
 	registerTimerEvent(render);
 	registerMouseEvent(mouse);

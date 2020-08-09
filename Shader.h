@@ -44,7 +44,7 @@ struct SimpleShader
 	};
 
 	// Vertex Shader
-	Pipeline::VSOut<VSToFS> processVertex(VSIn in)
+	Pipeline::VSOut<VSToFS> processVertex(VSIn& in)
 	{
 		Pipeline::VSOut<VSToFS> out;
 
@@ -63,7 +63,7 @@ struct SimpleShader
 	}
 
 	// Fragment Shader
-	void processFragment(FrameBufferAdapter& adapter, Pipeline::FSIn<VSToFS> in)
+	void processFragment(FrameBufferAdapter& adapter, Pipeline::FSIn<VSToFS>& in)
 	{
 		Vec3 result(0.0f);
 

@@ -36,7 +36,7 @@ struct Renderer
 
 		if (renderMode < 2)
 		{
-			std::vector<Pipeline::FSIn<typename Shader::VSToFS>> fragments = Rasterizer::rasterize(vertexOut);
+			std::vector<Pipeline::FSIn<typename Shader::VSToFS>> fragments = Rasterizer::rasterize(vertexOut, cullFaceMode);
 			FragmentProcessor::processFragment(adapter, shader, fragments);
 		}
 
@@ -94,18 +94,18 @@ struct Renderer
 
 		if (renderMode == 3) return;
 
-		for (int i = x1 - 4; i <= x1 + 4; i++)
+		for (int i = x1 - 2; i <= x1 + 2; i++)
 		{
-			for (int j = y1 - 4; j <= y1 + 4; j++)
+			for (int j = y1 - 2; j <= y1 + 2; j++)
 			{
 				if (i >= width || i < 0 || j >= height || j < 0) continue;
 				buffer(i, height - j - 1) = { 255, 0, 255 };
 			}
 		}
 
-		for (int i = x2 - 4; i <= x2 + 4; i++)
+		for (int i = x2 - 2; i <= x2 + 2; i++)
 		{
-			for (int j = y2 - 4; j <= y2 + 4; j++)
+			for (int j = y2 - 2; j <= y2 + 2; j++)
 			{
 				if (i >= width || i < 0 || j >= height || j < 0) continue;
 				buffer(i, height - j - 1) = { 255, 0, 255 };
@@ -114,6 +114,7 @@ struct Renderer
 	}
 
 	int renderMode = 0;
+	int cullFaceMode = CULL_NONE;
 };
 
 #endif

@@ -31,7 +31,7 @@ public:
 
 		int vertexCount = (indices == nullptr) ? vertexIn.size() : indices->size();
 
-		for (int i = 0; i < vertexCount; i++)
+		for (register int i = 0; i < vertexCount; i++)
 		{
 			UINT index = (indices == nullptr) ? i : (*indices)[i];
 			clipSpaceData.push_back(shader.processVertex(vertexIn[index]));
@@ -57,7 +57,7 @@ public:
 
 		//std::cout << "Output  " << clipped.size() << "\n";
 
-		for (int i = 0; i < clipped.size(); i++)
+		for (register int i = 0; i < clipped.size(); i++)
 		{
 			Vec4& pos = clipped[i].sr_Position;
 			pos[0] /= pos[3], pos[1] /= pos[3], pos[2] /= pos[3];
@@ -85,7 +85,7 @@ private:
 		int triangleCount = clipSpaceData.size() / 3;
 		std::vector<Pipeline::VSOut<VSToFS>> clipResult;
 
-		for (int i = 0; i < triangleCount; i++)
+		for (register int i = 0; i < triangleCount; i++)
 		{
 			Pipeline::VSOut<VSToFS> va = clipSpaceData[i * 3 + 0];
 			Pipeline::VSOut<VSToFS> vb = clipSpaceData[i * 3 + 1];
@@ -119,7 +119,7 @@ private:
 			std::vector<Pipeline::VSOut<VSToFS>> input(output);
 			output.clear();
 
-			for (int j = 0; j < input.size(); j++)
+			for (register int j = 0; j < input.size(); j++)
 			{
 				Pipeline::VSOut<VSToFS> va = input[j];
 				Pipeline::VSOut<VSToFS> vb = input[(j + 1) % input.size()];
@@ -141,7 +141,7 @@ private:
 
 		std::vector<Pipeline::VSOut<VSToFS>> res;
 
-		for (int i = 1; i + 1 < output.size(); i++)
+		for (register int i = 1; i + 1 < output.size(); i++)
 		{
 			res.push_back(output[0]);
 			res.push_back(output[i]);

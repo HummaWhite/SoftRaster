@@ -182,7 +182,7 @@ float dot(Vec<N> a, Vec<N> b)
 	return res;
 }
 
-static Vec3 cross(Vec3& a, Vec3& b)
+inline static Vec3 cross(Vec3 a, Vec3 b)
 {
 	Vec3 res;
 	res[0] = a[1] * b[2] - a[2] * b[1];
@@ -191,7 +191,7 @@ static Vec3 cross(Vec3& a, Vec3& b)
 	return res;
 }
 
-static float cross(Vec2 a, Vec2 b)
+inline static float cross(Vec2 a, Vec2 b)
 {
 	return (a[0] * b[1] - a[1] * b[0]) * 0.5f;
 }

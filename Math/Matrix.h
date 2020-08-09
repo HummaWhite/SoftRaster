@@ -28,9 +28,9 @@ public:
 	Mat<N>(Mat<M>& m)
 	{
 		int lim = M > N ? N : M;
-		for (int i = 0; i < N; i++)
+		for (int i = 0; i < lim; i++)
 		{
-			for (int j = 0; j < N; j++)
+			for (int j = 0; j < lim; j++)
 			{
 				data[i][j] = m(i, j);
 			}
