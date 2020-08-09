@@ -45,14 +45,14 @@ struct ShaderSample
 			//裁剪阶段插值
 			//通过构造函数生成插值后的实例
 			pos = lerp(from.pos, to.pos, weight);
-			...
+			// ...
 		}
 
 		VSToFS(VSToFS& va, VSToFS& vb, VSToFS& vc, Vec3 weight)
 		{
 			//光栅化阶段的三角形重心插值
 			pos = triLerp(va.pos, vb.pos, vc.pos, weight);
-			...
+			// ...
 		}
 
         // VS到FS之间传递的数据
@@ -75,14 +75,14 @@ struct ShaderSample
 		Pipeline::VSOut<VSToFS> out;
         
         // 各种计算过程
-        ...
+        // ...
 
         // 写入数据
-		out.data.pos = ...
-		out.data.texCoord = ...
+		out.data.pos = ...;
+		out.data.texCoord = ...;
         // sr_Position类似gl_Position
-        out.sr_Position = ...
-        ...
+        out.sr_Position = ...;
+        
 		return out;
 	}
 
@@ -97,11 +97,11 @@ struct ShaderSample
         
         // 采样纹理
         Vec4 texColor = texture(tex, { 0.5f, 0.5f }, LINEAR);
-        ...
+        // ...
 
         // 向FrameBufferAdapter的0号颜色附件写入结果
 		adapter.writeColor(0, result);
-        // 向FrameBufferAdapter的深度附件写入结果
+        // 向FrameBufferAdapter的深度附件写入结果，如果不些则默认写入管线中的值
 		adapter.writeDepth(in.z);
 	}
 
@@ -111,7 +111,7 @@ struct ShaderSample
 	Mat4 proj;
 	Vec3 viewPos;
     TextureRGB24 *tex = nullptr;
-    ...
+    // ...
 };
 ```
 
