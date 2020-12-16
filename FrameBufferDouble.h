@@ -11,6 +11,11 @@ public:
 
 	FrameBufferDouble(int w, int h)
 	{
+		init(w, h);
+	}
+
+	void init(int w, int h)
+	{
 		buf[0].init(w, h);
 		buf[1].init(w, h);
 	}
@@ -29,8 +34,7 @@ public:
 
 	void fill(T val)
 	{
-		buf[0].fill(val);
-		buf[1].fill(val);
+		buf[index].fill(val);
 	}
 
 	int width() { return buf[0].width; }

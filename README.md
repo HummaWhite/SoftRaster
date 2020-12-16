@@ -8,9 +8,8 @@
 ### 编译
 
 ```
-gcc -c acllib.c -std=c11 -g
-g++ -c test.cpp Camera.cpp stb_image/stb_image.cpp -std=c++11 -g
-g++ acllib.o test.o Camera.o stb_image.o -lgdi32 -lole32 -loleaut32 -luuid -lwinmm -lmsimg32 -o test.exe
+g++ -c main.cpp Camera.cpp stb_image/stb_image.cpp -std=c++17 -g
+g++ main.o Camera.o stb_image.o -lgdi32 -lole32 -loleaut32 -luuid -lwinmm -lmsimg32 -o test.exe
 ```
 
 stb_image库请自行获取并配置
